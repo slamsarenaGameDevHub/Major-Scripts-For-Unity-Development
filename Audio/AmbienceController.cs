@@ -29,7 +29,8 @@ public class AmbienceController : MonoBehaviour
 
 	void PlayAmbience()
 	{
-										ambienceSource.Stop(); clipToPlay=Random.Range(0,ambientClips.Count);
+		ambienceSource.Stop(); 
+		clipToPlay=UnityEngine.Random.Range(0,ambientClips.Count);
 		ambienceSource.clip=ambientClips[clipToPlay];
 		ambienceSource.Play();
 	}

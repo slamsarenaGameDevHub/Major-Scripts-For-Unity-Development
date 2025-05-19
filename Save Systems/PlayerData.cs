@@ -7,10 +7,10 @@ public class PlayerData
     public int Money;
     
 
-    public PlayerData(InventoryAsset inventory)
+    public PlayerData(PlayerAsset playerAsset)
     {
-        Money = inventory.Money;
-        CurrentLevel=inventory.Level;
+        Money = playerAsset.Money;
+        CurrentLevel=playerAsset.Level;
         
     }
 }

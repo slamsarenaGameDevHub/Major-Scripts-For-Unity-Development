@@ -1,6 +1,6 @@
 using UnityEngine;
 [CreateAssetMenu(fileName = "Inventory Asset", menuName = "Inventory Asset")]
-public class InventoryAsset : ScriptableObject
+public class PlayerAsset : ScriptableObject
 {
     public int Money;
     public int Level;

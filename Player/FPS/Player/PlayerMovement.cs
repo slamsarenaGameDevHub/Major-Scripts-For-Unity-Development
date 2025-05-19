@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -38,6 +40,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Player Grounded")]
     [Tooltip("If the character is grounded or not. Not part of the CharacterController built in grounded check")]
     public bool Grounded = true;
+    bool wasGroundedLastFrame=true;
 
     [Header("Camera Control")]
     [SerializeField] Transform camTransform;
@@ -51,8 +54,6 @@ public class PlayerMovement : MonoBehaviour
 
     // player
     private float _speed;
-    private float _targetRotation = 0.0f;
-    private float _rotationVelocity;
     private float _verticalVelocity;
     private float _terminalVelocity = 53.0f;
 
@@ -67,8 +68,16 @@ public class PlayerMovement : MonoBehaviour
     private GameObject _mainCamera;
 
 
-
-
+    [Header("FootStep Clip")]
+    [SerializeField] List<AudioClip> footstepClips;
+    [SerializeField] AudioClip landClip;
+    [SerializeField] AudioClip jumpClip;
+    [SerializeField] AudioSource footstepSource;
+    [SerializeField] AudioSource jumpSource;
+    [SerializeField] float walkPlayRate = 0.55f;
+    [SerializeField] float runPlayRate = 0.25f;
+    float nextTimeToPlay,nextCheckTime;
+    int currentFootstepClipIndex = 0;
 
     private void Awake()
     {
@@ -91,17 +100,25 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-
         GroundedCheck();
     }
 
-
-
+    private void FixedUpdate()
+    {
+        wasGroundedLastFrame = _controller.isGrounded;
+    }
     private void GroundedCheck()
     {
         Grounded = _controller.isGrounded;
     }
-
+    private void LateUpdate()
+    {
+        if (!wasGroundedLastFrame && Grounded)
+        {
+            jumpSource.clip = landClip;
+            jumpSource.Play();
+        }
+    }
 
     public void Move(Vector2 input, bool isRun, bool isJump,Vector2 lookAround)
     {
@@ -134,29 +151,41 @@ public class PlayerMovement : MonoBehaviour
 
 
         // normalise input direction
-        Vector3 inputDirection = new Vector3(input.x, 0.0f, input.y).normalized;
+        Vector3 targetDirection = new Vector3(input.x, 0.0f, input.y).normalized;
+        targetDirection = transform.TransformDirection(targetDirection);
 
-        // note: Vector2's != operator uses approximation so is not floating point error prone, and is cheaper than magnitude
-        // if there is a move input rotate player when the player is moving
-        if (input != Vector2.zero)
-        {
-            _targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg +
-                              _mainCamera.transform.eulerAngles.y;
-            float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, _targetRotation, ref _rotationVelocity,
-                RotationSmoothTime);
-
-            // rotate to face input direction relative to camera position
-            transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
-        }
+        
 
 
-        Vector3 targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
 
         // move the player
         _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
                          new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
         LookAround(lookAround);
         JumpAndGravity(isJump);
+
+        //Play Footstep Sound
+        if(!wasGroundedLastFrame && Grounded)
+        {
+            print("Landed");
+        }
+        else if(_controller.velocity.magnitude>MoveSpeed && Grounded)
+        {
+            if(Time.time>=nextTimeToPlay)
+            {
+                nextTimeToPlay = Time.time + runPlayRate;
+                PlayFootstepSound();
+            }
+        }
+        else if(_controller.velocity.magnitude>=0.1f && _controller.velocity.magnitude<=MoveSpeed && Grounded)
+        {
+            if (Time.time >= nextTimeToPlay)
+            {
+                nextTimeToPlay = Time.time + walkPlayRate;
+                PlayFootstepSound();
+            }
+        }
+        
     }
     void LookAround(Vector2 look)
     {
@@ -168,8 +197,6 @@ public class PlayerMovement : MonoBehaviour
         pitch -= yLook;
         pitch=Mathf.Clamp(pitch,-camLookAngle,camLookAngle);
         camTransform.localRotation=Quaternion.Euler(pitch,0f,0f);
-
-
     }
 
     private void JumpAndGravity(bool jump)
@@ -189,6 +216,8 @@ public class PlayerMovement : MonoBehaviour
             // Jump
             if (jump && _jumpTimeoutDelta <= 0.0f)
             {
+                jumpSource.clip = jumpClip;
+                jumpSource.Play();
                 // the square root of H * -2 * G = how much velocity needed to reach desired height
                 _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
 
@@ -217,6 +246,22 @@ public class PlayerMovement : MonoBehaviour
         if (_verticalVelocity < _terminalVelocity)
         {
             _verticalVelocity += Gravity * Time.deltaTime;
+        }
+    }
+    void PlayFootstepSound()
+    {
+        for (int i = 0; i < footstepClips.Count; i++)
+        {
+            footstepSource.clip = footstepClips[currentFootstepClipIndex];
+            footstepSource.Play();
+            if(currentFootstepClipIndex>=footstepClips.Count-1)
+            {
+                currentFootstepClipIndex = 0;
+            }
+            else
+            {
+                currentFootstepClipIndex++;
+            }
         }
     }
 }

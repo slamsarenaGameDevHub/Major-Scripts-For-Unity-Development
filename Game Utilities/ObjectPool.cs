@@ -2,14 +2,14 @@ using System;
 using UnityEngine;
 using System.Collections.Generic;
 
-public class VillageSpawn : MonoBehaviour
+public class ObjectPool : MonoBehaviour
 {
 
     public List<Pool> pools;
     public Dictionary<string, Queue<GameObject>> poolDictionary;
 
     #region Singleton
-    public static VillageSpawn instance;
+    public static ObjectPool instance;
     void Awake()
     {
         instance = this;
